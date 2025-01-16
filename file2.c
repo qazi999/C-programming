@@ -3,48 +3,55 @@
 #include <string.h>
 #include <time.h>
 
-// Function declare
-void readQuestionsFromFile( char *filename, char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions);//Reads questions, options, and answers from a file.
-int play(char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions);// logic for asking questions and answers.
+// Function declarations
+void readQuestionsFromFile(char *filename, char questions[][100], char options[][4][50], int correctAnswers[], int *numQuestions);
+int play(char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions, int questionsToAttempt);
 
-int main() {
-    srand(time(NULL));//random number generation
+int main(int argc, char *argv[]) {
+    char *filename;
 
-    int numQuestions = 10;
-    char physicsQuestions[10][100], chemistryQuestions[10][100], gkQuestions[10][100];
-    char physicsOptions[10][4][50], chemistryOptions[10][4][50], gkOptions[10][4][50];
-    int physicsAnswers[10], chemistryAnswers[10], gkAnswers[10];
-
-    // Read questions and answers for each section
-    readQuestionsFromFile("physics.txt", physicsQuestions, physicsOptions, physicsAnswers, numQuestions);
-    readQuestionsFromFile("chemistry.txt", chemistryQuestions, chemistryOptions, chemistryAnswers, numQuestions);
-    readQuestionsFromFile("gk.txt", gkQuestions, gkOptions, gkAnswers, numQuestions);
-
-    printf("Welcome to Kus Bani Crorepati!\n");
-    printf("Choose your section:\n1. Physics\n2. Chemistry\n3. General Knowledge\n");
-
-    int section;
-    printf("Enter your choice (1/2/3): ");
-    scanf("%d", &section);
-    //using switchcase for section selection
-    int score = 0;
-    switch (section) {
-        case 1:
-            score = play(physicsQuestions, physicsOptions, physicsAnswers, numQuestions);
-            break;
-        case 2:
-            score = play(chemistryQuestions, chemistryOptions, chemistryAnswers, numQuestions);
-            break;
-        case 3:
-            score = play(gkQuestions, gkOptions, gkAnswers, numQuestions);
-            break;
-        default:
-            printf("Invalid choice! Exiting...\n");
-            return 1;
+    // If filename is not provided, prompt the user for it
+    if (argc != 2) {
+        printf("Please provide a valid text file containing the quiz questions.\n");
+        printf("Enter the filename: ");
+        char inputFilename[100];
+        scanf("%s", inputFilename);
+        filename = inputFilename;
+    } else {
+        filename = argv[1];
     }
 
+    srand(time(NULL)); // Seed random number generation
+
+    int numQuestions = 0;
+    char questions[10][100];
+    char options[10][4][50];
+    int correctAnswers[10];
+
+    // Read questions and answers from the specified file
+    readQuestionsFromFile(filename, questions, options, correctAnswers, &numQuestions);
+
+    if (numQuestions == 0) {
+        printf("No valid questions found in the file. Exiting...\n");
+        return 1;
+    }
+
+    printf("There are %d questions available in the file.\n", numQuestions);
+
+    int questionsToAttempt;
+    printf("How many questions would you like to attempt? (1-%d): ", numQuestions);
+    scanf("%d", &questionsToAttempt);
+
+    if (questionsToAttempt < 1 || questionsToAttempt > numQuestions) {
+        printf("Invalid number of questions to attempt. Exiting...\n");
+        return 1;
+    }
+
+    // Play the quiz
+    int score = play(questions, options, correctAnswers, numQuestions, questionsToAttempt);
+
     printf("\nYour total score is: %d\n", score);
-    if (score == 80) {
+    if (score == questionsToAttempt * 10) {
         printf("Congratulations! You've won the game!\n");
     } else {
         printf("Better luck next time!\n");
@@ -53,7 +60,7 @@ int main() {
     return 0;
 }
 
-void readQuestionsFromFile( char *filename, char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions) {
+void readQuestionsFromFile(char *filename, char questions[][100], char options[][4][50], int correctAnswers[], int *numQuestions) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error: Could not open %s\n", filename);
@@ -61,52 +68,62 @@ void readQuestionsFromFile( char *filename, char questions[][100], char options[
     }
 
     char line[200];
-    for (int i = 0; i < numQuestions; i++) {
+    int count = 0;
+    for (; count < 10 && fgets(line, sizeof(line), file); count++) {
         // Read the question
-        if (fscanf(file, " %[^\n]", questions[i]) != 1) {
-            printf("Error reading question %d from %s\n", i + 1, filename);
-            break;
+        line[strcspn(line, "\n")] = '\0'; // Remove trailing newline
+        if (strlen(line) == 0 ) {
+            printf("Skipping invalid question format at question %d.\n", count + 1);
+            count--; // Decrease count to retry the question
+            continue;
         }
+        strncpy(questions[count], line, 100);
 
         // Read the options
-        if (fscanf(file, " %[^\n]", line) != 1) {
-            printf("Error reading options for question %d from %s\n", i + 1, filename);
-            break;
+        if(fgets(line, sizeof(line), file) == NULL || strchr(line, '|') == NULL) {
+            printf("Skipping invalid options format at question %d.\n", count + 1);
+            count--;
+            continue;
         }
 
         char *token = strtok(line, "|");
-        for (int j = 0; j < 4; j++) {
-        if (token == NULL) {
-        break;  // Exit the loop if token is NULL
+        int optionCount = 0;
+        for (; token && optionCount < 4; optionCount++) {
+            strncpy(options[count][optionCount], token, 50);
+            options[count][optionCount][49] = '\0'; // Ensure null termination
+            token = strtok(NULL, "|");
         }
-        strncpy(options[i][j], token, 50);
-        token = strtok(NULL, "|");
-}
 
+        if (optionCount != 4) {
+            printf("Skipping question %d due to insufficient options.\n", count + 1);
+            count--;
+            continue;
+        }
 
         // Read the correct answer
-        if (fscanf(file, "%d", &correctAnswers[i]) != 1) {
-            printf("Error reading correct answer for question %d from %s\n", i + 1, filename);
-            break;
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%d", &correctAnswers[count]) != 1 || correctAnswers[count] < 1 || correctAnswers[count] > 4) {
+            printf("Skipping question %d due to invalid correct answer format.\n", count + 1);
+            count--;
+            continue;
         }
     }
 
+    *numQuestions = count;
     fclose(file);
 }
 
-int play(char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions) {
+int play(char questions[][100], char options[][4][50], int correctAnswers[], int numQuestions, int questionsToAttempt) {
     int score = 0;
-    int used[10] = {0}; // Array to track index
-    int count = 0;
+    int used[10] = {0}; // Array to track used indices
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < questionsToAttempt; i++) {
         int questionIndex = rand() % numQuestions;
 
         // Check if questionIndex has been used
-        for (count = 0; count < i; count++) {
+        for (int count = 0; count < i; count++) {
             if (used[count] == questionIndex) {
                 questionIndex = rand() % numQuestions; // Regenerate
-                count = -1; // Rstrt check
+                count = -1; // Restart check
             }
         }
 
@@ -129,11 +146,8 @@ int play(char questions[][100], char options[][4][50], int correctAnswers[], int
             score += 10;
         } else {
             printf("Incorrect! The correct answer was %d.\n", correctAnswers[questionIndex]);
-            break;
         }
     }
 
     return score;
 }
-
-
