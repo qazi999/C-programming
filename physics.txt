@@ -1,0 +1,30 @@
+What is the speed of light?
+3.00 x 10^8 m/s|2.00 x 10^8 m/s|1.50 x 10^8 m/s|1.00 x 10^8 m/s
+1
+What is the unit of force?
+Newton|Joule|Pascal|Watt
+1
+What does E=mc^2 represent?
+Energy|Mass|Speed|None
+1
+Which law states F=ma?
+Newton's first|Newton's second|Newton's third|Law of inertia
+1
+What is the acceleration due to gravity on Earth?
+9.8 m/s^2|10 m/s^2|8.5 m/s^2|7.2 m/s^2
+1
+Who proposed the law of universal gravitation?
+Newton|Einstein|Galileo|Bohr
+1
+What is the SI unit of energy?
+Joule|Watt|Newton|Pascal
+1
+What is the first law of thermodynamics?
+Energy conservation|Mass conservation|Force law|Momentum conservation
+1
+What is the typical voltage of a household electrical outlet?
+110-120 V|220-240 V|12 V|5 V
+1
+What is Ohm's Law?
+V=IR|P=VI|I=VR|E=mc^2
+1
